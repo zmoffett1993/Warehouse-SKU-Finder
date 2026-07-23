@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Warehouse SKU Finder — Test</title>
+<style>
+:root {
+  --bg:#eef3f7;
+  --panel:#ffffff;
+  --ink:#102438;
+  --muted:#607387;
+  --brand:#163b5c;
+  --brand2:#246c9d;
+  --accent:#f3b33d;
+  --green:#18864b;
+  --line:#d8e1e8;
+  --shadow:0 12px 30px rgba(20,45,70,.12);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:var(--bg);color:var(--ink)}
+button,input{font:inherit}
+.app{min-height:100vh}
+.topbar{background:linear-gradient(135deg,var(--brand),#0d2941);color:#fff;padding:18px 18px 22px;position:sticky;top:0;z-index:10;box-shadow:0 8px 20px rgba(0,0,0,.18)}
+.brand-row{display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:980px;margin:auto}
+.brand h1{font-size:22px;margin:0;letter-spacing:.2px}
+.brand p{margin:4px 0 0;color:#cfe3f4;font-size:13px}
+.badge{background:var(--accent);color:#352400;font-weight:800;border-radius:999px;padding:7px 10px;font-size:12px;white-space:nowrap}
+.search-wrap{max-width:980px;margin:16px auto 0;position:relative}
+.search-row{display:flex;gap:8px}
+.search{width:100%;border:0;border-radius:14px;padding:16px 48px 16px 16px;font-size:17px;outline:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.4),0 5px 15px rgba(0,0,0,.15)}
+.clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);border:0;background:#e7eef4;color:#24445f;width:30px;height:30px;border-radius:50%;cursor:pointer;display:none}
+.suggestions{position:absolute;left:0;right:0;top:58px;background:#fff;color:var(--ink);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;max-height:310px;overflow-y:auto;display:none;z-index:20}
+.suggestion{padding:13px 15px;border-bottom:1px solid var(--line);cursor:pointer;font-weight:700}
+.suggestion small{display:block;color:var(--muted);font-weight:500;margin-top:3px}
+.suggestion:hover,.suggestion.active{background:#edf6fc}
+.tabs{max-width:980px;margin:18px auto 0;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px}
+.tab{border:0;background:#dce7ef;color:#24445f;padding:12px;border-radius:11px;font-weight:800;cursor:pointer}
+.tab.active{background:var(--brand2);color:#fff}
+main{max-width:980px;margin:auto;padding:16px 16px 36px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat{background:var(--panel);border-radius:14px;padding:14px;box-shadow:var(--shadow);text-align:center}
+.stat strong{display:block;font-size:22px;color:var(--brand)}
+.stat span{font-size:12px;color:var(--muted)}
+.empty{background:var(--panel);border:2px dashed #c6d4df;border-radius:18px;padding:38px 22px;text-align:center;color:var(--muted)}
+.empty .icon{font-size:36px;margin-bottom:8px}
+.result-card{background:var(--panel);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:16px}
+.result-head{background:linear-gradient(135deg,#f7fafc,#e7f1f7);padding:18px;border-bottom:1px solid var(--line)}
+.result-head .sku{font-size:21px;font-weight:900;word-break:break-word}
+.result-head .count{color:var(--muted);font-size:13px;margin-top:5px}
+.location-card{padding:18px;display:grid;grid-template-columns:86px 1fr;gap:16px;align-items:center}
+.pin{width:82px;height:82px;border-radius:22px;background:var(--brand2);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 9px 20px rgba(36,108,157,.25)}
+.pin .star{font-size:22px;line-height:1}
+.pin .loc{font-size:25px;font-weight:900}
+.location-info h3{margin:0 0 5px;font-size:17px}
+.location-info p{margin:3px 0;color:var(--muted);font-size:14px}
+.coverage{display:inline-block;margin-top:7px;background:#e6f6ec;color:var(--green);font-weight:800;font-size:12px;border-radius:999px;padding:5px 9px}
+.overflow-title{padding:13px 18px;background:#f7f9fb;border-top:1px solid var(--line);font-weight:900}
+.overflow-list{padding:0 18px 18px}
+.overflow-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line)}
+.overflow-item:last-child{border-bottom:0}
+.small-loc{background:#eaf2f8;color:var(--brand);font-weight:900;border-radius:9px;padding:7px 10px}
+.aisle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.aisle-card{background:var(--panel);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.aisle-title{background:var(--brand);color:#fff;padding:13px 15px;font-weight:900}
+.section{padding:12px 15px;border-bottom:1px solid var(--line)}
+.section:last-child{border-bottom:0}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.section-loc{font-size:18px;font-weight:900;color:var(--brand2)}
+.section-count{font-size:12px;color:var(--muted)}
+.sku-chip{display:block;background:#f4f7f9;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:12px;font-weight:700;word-break:break-word;cursor:pointer}
+.hidden{display:none!important}
+.footer-note{text-align:center;color:var(--muted);font-size:12px;margin-top:22px}
+
+.aisle-guide{padding:18px;border-top:1px solid var(--line);background:#fbfcfd}
+.aisle-guide-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.aisle-guide-title strong{font-size:16px}
+.aisle-guide-title span{font-size:12px;color:var(--muted)}
+.aisle-diagram{max-width:360px;margin:0 auto}
+.front-sections{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:8px}
+.drive-lane{display:flex;align-items:center;gap:8px;margin:8px 0 10px;color:var(--muted);font-size:11px;font-weight:900;letter-spacing:1px}
+.drive-lane::before,.drive-lane::after{content:"";height:3px;flex:1;background:repeating-linear-gradient(90deg,var(--muted) 0 12px,transparent 12px 18px);opacity:.55}
+.deep-sections{display:grid;grid-template-columns:1fr;gap:7px}
+.aisle-section-marker{display:flex;align-items:center;justify-content:space-between;min-height:42px;border:2px solid #b9c9d6;background:#e9f2f7;border-radius:11px;padding:8px 12px;font-weight:900;color:#24445f}
+.aisle-section-marker .section-label{display:flex;align-items:center;gap:8px}
+.aisle-section-marker .distance-label{font-size:11px;font-weight:700;color:var(--muted)}
+.aisle-section-marker.active{background:var(--brand2);border-color:var(--brand2);color:#fff;box-shadow:0 7px 16px rgba(36,108,157,.22)}
+.aisle-section-marker.active .distance-label{color:#dbeeff}
+.aisle-section-marker .map-star{display:none;font-size:20px;color:#ffd166}
+.aisle-section-marker.active .map-star{display:inline}
+.direction-note{text-align:center;color:var(--muted);font-size:11px;margin-top:9px}
+
+@media (max-width:620px){
+  .brand h1{font-size:19px}
+  .summary{grid-template-columns:1fr 1fr 1fr}
+  .stat{padding:10px 5px}
+  .stat strong{font-size:18px}
+  .location-card{grid-template-columns:74px 1fr}
+  .pin{width:70px;height:70px}
+  .pin .loc{font-size:22px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand-row">
+      <div class="brand">
+        <h1>Warehouse SKU Finder</h1>
+        <p>Picker test system · Aisles 2–7</p>
+      </div>
+      <div class="badge">TEST VERSION</div>
+    </div>
+    <div class="search-wrap">
+      <div class="search-row">
+        <input id="search" class="search" autocomplete="off" placeholder="Start typing a SKU…" aria-label="Search SKU">
+      </div>
+      <button id="clear" class="clear" aria-label="Clear search">×</button>
+      <div id="suggestions" class="suggestions"></div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-view="searchView">SKU Search</button>
+    <button class="tab" data-view="aisleView">Browse Aisles</button>
+  </div>
+
+  <main>
+    <div class="summary">
+      <div class="stat"><strong>128</strong><span>Unique SKUs</span></div>
+      <div class="stat"><strong>155</strong><span>SKU Locations</span></div>
+      <div class="stat"><strong>6</strong><span>Aisles Loaded</span></div>
+    </div>
+
+    <section id="searchView">
+      <div id="emptyState" class="empty">
+        <div class="icon">🔎</div>
+        <strong>Search for a product SKU</strong>
+        <div>Results will show the primary pick location and every overflow location.</div>
+      </div>
+      <div id="results"></div>
+    </section>
+
+    <section id="aisleView" class="hidden">
+      <div id="aisles" class="aisle-grid"></div>
+    </section>
+
+    <div class="footer-note">Prototype data compiled from mapped warehouse aisles 2 through 7.</div>
+  </main>
+</div>
+
+<script>
+const skuData = [{"sku":"CGAB1-10ML-CNL-OBK","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-10ML-CNL-OWH","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-10ML-OBK-OBK","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-10ML-OWH-OWH","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-10MLV3-BK","primary":{"location":"4G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-16.5ML-CNL-OBK","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-16.5ML-CNL-OWH","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-16.5ML-OBK-OBK","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[{"location":"6B","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAB1-16.5ML-OWH-OWH","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-20ML-CNL-OBK","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-20ML-CNL-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-20ML-OBK-OBK","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-20ML-OWH-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30ML-CNL-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30ML-OBK-OBK","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30ML-OWH-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30MLSC-CNL-OBK","primary":{"location":"7A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30MLSC-CNL-OWH","primary":{"location":"7A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30MLSC-OBK-OBK","primary":{"location":"7A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-30MLSC-OWH-OWH","primary":{"location":"7A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-50ML-CNL-OBK","primary":{"location":"5A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-50ML-CNL-OWH","primary":{"location":"5A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-50ML-OBK-OBK","primary":{"location":"5A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-50ML-OWH-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60ML-CNL-OBK","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60ML-CNL-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60ML-OBK-OBK","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60ML-OWH-OWH","primary":{"location":"6A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60MLM-CNL-OBK","primary":{"location":"4C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60MLM-CNL-OWH","primary":{"location":"4C","coverage":"Mixed","notes":""},"overflow":[{"location":"4D","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAB1-60MLM-OBK-OBK","primary":{"location":"4C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAB1-60MLM-OWH-OWH","primary":{"location":"4D","coverage":"Mixed","notes":""},"overflow":[{"location":"4E","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGABB1-1LTR-OBK-OBK","primary":{"location":"5A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGABB1-1LTR-OWH-OWH","primary":{"location":"5A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGABB1-250ML-OBK-OBK","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGABB1-250ML-OWH-OWH","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGABB1-500ML-OWH-OWH","primary":{"location":"5A","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-1OZCNL-OBK","primary":{"location":"2E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-1OZCNL-OWH","primary":{"location":"2E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-1OZTAM-OBK","primary":{"location":"2E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-4OZ-CNL-OBK","primary":{"location":"6H","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-4OZ-OBK-OBK","primary":{"location":"5F","coverage":"Mixed","notes":""},"overflow":[{"location":"5G","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAC1-4OZ-OWH-OWH","primary":{"location":"6G","coverage":"Mixed","notes":""},"overflow":[{"location":"6H","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAC1-4OZ-TAM-OBK","primary":{"location":"5G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-4OZ-TBK-OBK","primary":{"location":"6H","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-510F-CNL-OWH","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-510F-OBK-OBK","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-510F-OWH-OWH","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[{"location":"7G","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAC1-510R-CNL-OBK","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-510R-CNL-OWH","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-510R-OBK-OBK","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-510R-OWH-OWH","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-6OZ-CNL-OBK","primary":{"location":"6E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-6OZ-CNL-OWH","primary":{"location":"6F","coverage":"Mixed","notes":""},"overflow":[{"location":"6G","coverage":"Mixed","notes":""},{"location":"7G","coverage":"Mixed","notes":""}],"locationCount":3},{"sku":"CGAC1-6OZ-OBK-OBK","primary":{"location":"6F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-6OZ-OWH-OWH","primary":{"location":"6E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAC1-8OZ-CNL-OWH","primary":{"location":"4G","coverage":"Mixed","notes":""},"overflow":[{"location":"5F","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAC1-8OZ-OWH-OWH","primary":{"location":"5D","coverage":"Mixed","notes":""},"overflow":[{"location":"7E","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAC1-8OZOBK-OBK","primary":{"location":"2C","coverage":"All Levels","notes":"Verify original transcription"},"overflow":[],"locationCount":1},{"sku":"CGAC1-8OZOWH-OWH","primary":{"location":"2D","coverage":"All Levels","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAPT5-116MM-CNL-CNL","primary":{"location":"6D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAPT5-116MM-OBK-OBK","primary":{"location":"6B","coverage":"Mixed","notes":""},"overflow":[{"location":"6C","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGAPT5-116MM-OWH-OWH","primary":{"location":"5D","coverage":"Mixed","notes":""},"overflow":[{"location":"6C","coverage":"Mixed","notes":""},{"location":"6D","coverage":"Mixed","notes":""},{"location":"7E","coverage":"Mixed","notes":""}],"locationCount":4},{"sku":"CGAPT5-78MM-OWH-OWH","primary":{"location":"6D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAPT5-98MM-CNL-CNL","primary":{"location":"6D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAPT5-98MM-OBK-OBK","primary":{"location":"6E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAPT5-98MM-OWH-OWH","primary":{"location":"6E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGASB1-30MLSC-CNL-CNL","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGASB1-30MLSC-CNL-OBK","primary":{"location":"7E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGASB1-30MLSC-OBK-OBK","primary":{"location":"7E","coverage":"Mixed","notes":""},"overflow":[{"location":"7F","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGASB1-30MLSC-OWH-OWH","primary":{"location":"7E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGAT1-10MLV3-BK","primary":{"location":"4G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-50ML-CNL-OBK","primary":{"location":"5C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-50ML-CNL-OWH","primary":{"location":"5C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-50ML-OBK-OBK","primary":{"location":"5C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-50ML-OWH-OWH","primary":{"location":"5C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-60MLM-CNL-OBK","primary":{"location":"3F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-60MLM-CNL-OWH","primary":{"location":"3F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-60MLM-OBK-OBK","primary":{"location":"3F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSB1-60MLM-OWH-OWH","primary":{"location":"3F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-4OZ-CNL-OBK","primary":{"location":"5D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-4OZ-CNL-OWH","primary":{"location":"5E","coverage":"Mixed","notes":""},"overflow":[{"location":"5F","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGSC1-4OZ-OBK-OBK","primary":{"location":"5D","coverage":"Mixed","notes":""},"overflow":[{"location":"5E","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGSC1-4OZ-OWH-OWH","primary":{"location":"5D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510F-CNL-OBK","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510F-CNL-OWH","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510F-OBK-OBK","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510F-OWH-OWH","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510R-CNL-OBK","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510R-CNL-OWH","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510R-OBK-OBK","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-510R-OWH-OWH","primary":{"location":"7F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGSC1-8OZCNL-OBK","primary":{"location":"3G","coverage":"All Levels","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-100MLV3-NATL","primary":{"location":"2A","coverage":"All Levels","notes":""},"overflow":[{"location":"2B","coverage":"All Levels","notes":""}],"locationCount":2},{"sku":"CGUB1-10MLV3-AMBK","primary":{"location":"4H","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-10MLV3-BK","primary":{"location":"4G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-10MLV3-BK-SOLID","primary":{"location":"4F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-10MLV3-BKBK","primary":{"location":"4H","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-10MLV3-NATL","primary":{"location":"4G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-10MLV3-WT-SOLID","primary":{"location":"4F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-10MLV3-WTC","primary":{"location":"4H","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-120MLV3-AMBK","primary":{"location":"7H","coverage":"All Levels","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-120MLV3-BK-SOLID","primary":{"location":"7G","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-120MLV3-NATL","primary":{"location":"7D","coverage":"All Levels","notes":""},"overflow":[{"location":"7C","coverage":"Mixed","notes":""},{"location":"7E","coverage":"Mixed","notes":""}],"locationCount":3},{"sku":"CGUB1-15MLV3-AMBK","primary":{"location":"4E","coverage":"Mixed","notes":""},"overflow":[{"location":"4F","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGUB1-15MLV3-BK","primary":{"location":"4F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-15MLV3-BKBK","primary":{"location":"4F","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-15MLV3-WT-SOLID","primary":{"location":"4E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-15MLV3-WTC","primary":{"location":"4E","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-30MLSC-NATL","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[{"location":"7C","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGUB1-30MLV3-AMBK","primary":{"location":"7C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-30MLV3-BK","primary":{"location":"7B","coverage":"All Levels","notes":""},"overflow":[{"location":"7A","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGUB1-30MLV3-BKBK","primary":{"location":"7C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-30MLV3-NATL","primary":{"location":"7C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-30MLV3-WT-SOLID","primary":{"location":"7C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-30MLV3-WTC","primary":{"location":"7C","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-50MLV3-AMBK","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-50MLV3-BK","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-50MLV3-BK-SOLID","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-50MLV3-BKBK","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-50MLV3-NATL","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-50MLV3-WT-SOLID","primary":{"location":"5B","coverage":"Mixed","notes":""},"overflow":[{"location":"5C","coverage":"Mixed","notes":""}],"locationCount":2},{"sku":"CGUB1-60MLV3-AMBK","primary":{"location":"3D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-60MLV3-BK","primary":{"location":"3E","coverage":"All Levels","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-60MLV3-BKBK","primary":{"location":"3A","coverage":"All Levels","notes":""},"overflow":[{"location":"3B","coverage":"All Levels","notes":""},{"location":"3C","coverage":"All Levels","notes":""}],"locationCount":3},{"sku":"CGUB1-60MLV3-NATL","primary":{"location":"4A","coverage":"All Levels","notes":""},"overflow":[{"location":"4B","coverage":"All Levels","notes":""}],"locationCount":2},{"sku":"CGUB1-60MLV3-SOLID","primary":{"location":"3D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1},{"sku":"CGUB1-60MLV3-WTC","primary":{"location":"3D","coverage":"Mixed","notes":""},"overflow":[],"locationCount":1}];
+const locationData = [{"location":"2A","aisle":2,"skus":["CGUB1-100MLV3-NATL"]},{"location":"2B","aisle":2,"skus":["CGUB1-100MLV3-NATL"]},{"location":"2C","aisle":2,"skus":["CGAC1-8OZOBK-OBK"]},{"location":"2D","aisle":2,"skus":["CGAC1-8OZOWH-OWH"]},{"location":"2E","aisle":2,"skus":["CGAC1-1OZCNL-OBK","CGAC1-1OZCNL-OWH","CGAC1-1OZTAM-OBK"]},{"location":"3A","aisle":3,"skus":["CGUB1-60MLV3-BKBK"]},{"location":"3B","aisle":3,"skus":["CGUB1-60MLV3-BKBK"]},{"location":"3C","aisle":3,"skus":["CGUB1-60MLV3-BKBK"]},{"location":"3D","aisle":3,"skus":["CGUB1-60MLV3-AMBK","CGUB1-60MLV3-SOLID","CGUB1-60MLV3-WTC"]},{"location":"3E","aisle":3,"skus":["CGUB1-60MLV3-BK"]},{"location":"3F","aisle":3,"skus":["CGSB1-60MLM-CNL-OBK","CGSB1-60MLM-CNL-OWH","CGSB1-60MLM-OBK-OBK","CGSB1-60MLM-OWH-OWH"]},{"location":"3G","aisle":3,"skus":["CGSC1-8OZCNL-OBK"]},{"location":"4A","aisle":4,"skus":["CGUB1-60MLV3-NATL"]},{"location":"4B","aisle":4,"skus":["CGUB1-60MLV3-NATL"]},{"location":"4C","aisle":4,"skus":["CGAB1-60MLM-CNL-OBK","CGAB1-60MLM-CNL-OWH","CGAB1-60MLM-OBK-OBK"]},{"location":"4D","aisle":4,"skus":["CGAB1-60MLM-CNL-OWH","CGAB1-60MLM-OWH-OWH"]},{"location":"4E","aisle":4,"skus":["CGAB1-60MLM-OWH-OWH","CGUB1-15MLV3-AMBK","CGUB1-15MLV3-WT-SOLID","CGUB1-15MLV3-WTC"]},{"location":"4F","aisle":4,"skus":["CGUB1-10MLV3-BK-SOLID","CGUB1-10MLV3-WT-SOLID","CGUB1-15MLV3-AMBK","CGUB1-15MLV3-BK","CGUB1-15MLV3-BKBK"]},{"location":"4G","aisle":4,"skus":["CGAB1-10MLV3-BK","CGAC1-8OZ-CNL-OWH","CGAT1-10MLV3-BK","CGUB1-10MLV3-BK","CGUB1-10MLV3-NATL"]},{"location":"4H","aisle":4,"skus":["CGUB1-10MLV3-AMBK","CGUB1-10MLV3-BKBK","CGUB1-10MLV3-WTC"]},{"location":"5A","aisle":5,"skus":["CGAB1-50ML-CNL-OBK","CGAB1-50ML-CNL-OWH","CGAB1-50ML-OBK-OBK","CGABB1-1LTR-OBK-OBK","CGABB1-1LTR-OWH-OWH","CGABB1-500ML-OWH-OWH"]},{"location":"5B","aisle":5,"skus":["CGABB1-250ML-OBK-OBK","CGABB1-250ML-OWH-OWH","CGUB1-30MLSC-NATL","CGUB1-50MLV3-AMBK","CGUB1-50MLV3-BK","CGUB1-50MLV3-BK-SOLID","CGUB1-50MLV3-BKBK","CGUB1-50MLV3-NATL","CGUB1-50MLV3-WT-SOLID"]},{"location":"5C","aisle":5,"skus":["CGSB1-50ML-CNL-OBK","CGSB1-50ML-CNL-OWH","CGSB1-50ML-OBK-OBK","CGSB1-50ML-OWH-OWH","CGUB1-50MLV3-WT-SOLID"]},{"location":"5D","aisle":5,"skus":["CGAC1-8OZ-OWH-OWH","CGAPT5-116MM-OWH-OWH","CGSC1-4OZ-CNL-OBK","CGSC1-4OZ-OBK-OBK","CGSC1-4OZ-OWH-OWH"]},{"location":"5E","aisle":5,"skus":["CGSC1-4OZ-CNL-OWH","CGSC1-4OZ-OBK-OBK"]},{"location":"5F","aisle":5,"skus":["CGAC1-4OZ-OBK-OBK","CGAC1-8OZ-CNL-OWH","CGSC1-4OZ-CNL-OWH"]},{"location":"5G","aisle":5,"skus":["CGAC1-4OZ-OBK-OBK","CGAC1-4OZ-TAM-OBK"]},{"location":"6A","aisle":6,"skus":["CGAB1-16.5ML-OBK-OBK","CGAB1-20ML-CNL-OBK","CGAB1-20ML-CNL-OWH","CGAB1-20ML-OBK-OBK","CGAB1-20ML-OWH-OWH","CGAB1-30ML-CNL-OWH","CGAB1-30ML-OBK-OBK","CGAB1-30ML-OWH-OWH","CGAB1-50ML-OWH-OWH","CGAB1-60ML-CNL-OBK","CGAB1-60ML-CNL-OWH","CGAB1-60ML-OBK-OBK","CGAB1-60ML-OWH-OWH"]},{"location":"6B","aisle":6,"skus":["CGAB1-10ML-CNL-OBK","CGAB1-10ML-CNL-OWH","CGAB1-10ML-OBK-OBK","CGAB1-10ML-OWH-OWH","CGAB1-16.5ML-CNL-OBK","CGAB1-16.5ML-CNL-OWH","CGAB1-16.5ML-OBK-OBK","CGAB1-16.5ML-OWH-OWH","CGAPT5-116MM-OBK-OBK"]},{"location":"6C","aisle":6,"skus":["CGAPT5-116MM-OBK-OBK","CGAPT5-116MM-OWH-OWH"]},{"location":"6D","aisle":6,"skus":["CGAPT5-116MM-CNL-CNL","CGAPT5-116MM-OWH-OWH","CGAPT5-78MM-OWH-OWH","CGAPT5-98MM-CNL-CNL"]},{"location":"6E","aisle":6,"skus":["CGAC1-6OZ-CNL-OBK","CGAC1-6OZ-OWH-OWH","CGAPT5-98MM-OBK-OBK","CGAPT5-98MM-OWH-OWH"]},{"location":"6F","aisle":6,"skus":["CGAC1-6OZ-CNL-OWH","CGAC1-6OZ-OBK-OBK"]},{"location":"6G","aisle":6,"skus":["CGAC1-4OZ-OWH-OWH","CGAC1-6OZ-CNL-OWH"]},{"location":"6H","aisle":6,"skus":["CGAC1-4OZ-CNL-OBK","CGAC1-4OZ-OWH-OWH","CGAC1-4OZ-TBK-OBK"]},{"location":"7A","aisle":7,"skus":["CGAB1-30MLSC-CNL-OBK","CGAB1-30MLSC-CNL-OWH","CGAB1-30MLSC-OBK-OBK","CGAB1-30MLSC-OWH-OWH","CGUB1-30MLV3-BK"]},{"location":"7B","aisle":7,"skus":["CGUB1-30MLV3-BK"]},{"location":"7C","aisle":7,"skus":["CGUB1-120MLV3-NATL","CGUB1-30MLSC-NATL","CGUB1-30MLV3-AMBK","CGUB1-30MLV3-BKBK","CGUB1-30MLV3-NATL","CGUB1-30MLV3-WT-SOLID","CGUB1-30MLV3-WTC"]},{"location":"7D","aisle":7,"skus":["CGUB1-120MLV3-NATL"]},{"location":"7E","aisle":7,"skus":["CGAC1-8OZ-OWH-OWH","CGAPT5-116MM-OWH-OWH","CGASB1-30MLSC-CNL-OBK","CGASB1-30MLSC-OBK-OBK","CGASB1-30MLSC-OWH-OWH","CGUB1-120MLV3-NATL"]},{"location":"7F","aisle":7,"skus":["CGAC1-510F-OWH-OWH","CGASB1-30MLSC-CNL-CNL","CGASB1-30MLSC-OBK-OBK","CGSC1-510F-CNL-OBK","CGSC1-510F-CNL-OWH","CGSC1-510F-OBK-OBK","CGSC1-510F-OWH-OWH","CGSC1-510R-CNL-OWH","CGSC1-510R-OBK-OBK","CGSC1-510R-OWH-OWH"]},{"location":"7G","aisle":7,"skus":["CGAC1-510F-CNL-OWH","CGAC1-510F-OBK-OBK","CGAC1-510F-OWH-OWH","CGAC1-510R-CNL-OBK","CGAC1-510R-CNL-OWH","CGAC1-510R-OBK-OBK","CGAC1-510R-OWH-OWH","CGAC1-6OZ-CNL-OWH","CGSC1-510R-CNL-OBK","CGUB1-120MLV3-BK-SOLID"]},{"location":"7H","aisle":7,"skus":["CGUB1-120MLV3-AMBK"]}];
+
+const search = document.getElementById('search');
+const clearBtn = document.getElementById('clear');
+const suggestions = document.getElementById('suggestions');
+const results = document.getElementById('results');
+const emptyState = document.getElementById('emptyState');
+
+function normalize(v) {
+  return v.toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+}
+
+function strictSkuMatch(sku, query) {
+  const source = normalize(sku);
+  const q = normalize(query);
+  if (!q) return false;
+
+  let start = 0;
+  while (true) {
+    const index = source.indexOf(q, start);
+    if (index === -1) return false;
+
+    const before = index > 0 ? source[index - 1] : '';
+    const after = index + q.length < source.length ? source[index + q.length] : '';
+
+    // Numeric searches must begin at the start of that number segment.
+    // This prevents 20ML from matching inside 120MLV3.
+    const validStart = !/^\d/.test(q) || !/\d/.test(before);
+
+    // A digits-only search must also end before another digit.
+    // This prevents 20 from matching 200 or 120.
+    const validEnd = !/^\d+$/.test(q) || !/\d/.test(after);
+
+    if (validStart && validEnd) return true;
+    start = index + 1;
+  }
+}
+
+function showSuggestions(query) {
+  const q = normalize(query);
+  if (!q) {
+    suggestions.style.display = 'none';
+    suggestions.innerHTML = '';
+    return;
+  }
+  const matches = skuData.filter(x => strictSkuMatch(x.sku, q)).slice(0, 12);
+  suggestions.innerHTML = matches.map((x,i) => `
+    <div class="suggestion" data-sku="${x.sku.replace(/"/g,'&quot;')}">
+      ${x.sku}
+      <small>${x.locationCount} location${x.locationCount === 1 ? '' : 's'} · Primary ${x.primary.location}</small>
+    </div>`).join('');
+  suggestions.style.display = matches.length ? 'block' : 'none';
+  suggestions.querySelectorAll('.suggestion').forEach(el => {
+    el.addEventListener('click', () => selectSku(el.dataset.sku));
+  });
+}
+
+
+function buildAisleGuide(location) {
+  const match = location.match(/^(\d+)([A-H])$/);
+  if (!match) return '';
+  const aisle = match[1];
+  const activeSection = match[2];
+  const sections = ['A','B','C','D','E','F','G','H'];
+  const distanceText = {
+    A:'South end of aisle',
+    B:'Near the main drive',
+    C:'Just past the main drive',
+    D:'Early in the aisle',
+    E:'Middle of the aisle',
+    F:'Past the middle',
+    G:'Near the end of the aisle',
+    H:'End of the aisle'
+  };
+
+  const marker = (letter) => `
+    <div class="aisle-section-marker ${letter === activeSection ? 'active' : ''}">
+      <div class="section-label">
+        <span>${letter}</span>
+        <span class="distance-label">${distanceText[letter]}</span>
+      </div>
+      <span class="map-star" aria-label="Selected section">★</span>
+    </div>`;
+
+  return `
+    <div class="aisle-guide">
+      <div class="aisle-guide-title">
+        <strong>Aisle ${aisle} overview</strong>
+        <span>Section guide</span>
+      </div>
+      <div class="aisle-diagram" role="img" aria-label="Aisle ${aisle} diagram with section ${activeSection} highlighted">
+        <div class="front-sections">
+          ${marker('A')}
+          ${marker('B')}
+        </div>
+        <div class="drive-lane">MAIN DRIVE AISLE</div>
+        <div class="deep-sections">
+          ${sections.slice(2).map(marker).join('')}
+        </div>
+        
+      </div>
+    </div>`;
+}
+
+function selectSku(sku) {
+  const item = skuData.find(x => x.sku === sku);
+  if (!item) return;
+  search.value = sku;
+  clearBtn.style.display = 'block';
+  suggestions.style.display = 'none';
+  emptyState.classList.add('hidden');
+  const overflowHtml = item.overflow.length ? `
+    <div class="overflow-title">Overflow / Additional Locations</div>
+    <div class="overflow-list">
+      ${item.overflow.map(x => `
+        <div class="overflow-item">
+          <div>
+            <strong>${x.location}</strong>
+            <div style="font-size:12px;color:#607387">${x.coverage}</div>
+          </div>
+          <span class="small-loc">${x.location}</span>
+        </div>`).join('')}
+    </div>` : '';
+  results.innerHTML = `
+    <div class="result-card">
+      <div class="result-head">
+        <div class="sku">${item.sku}</div>
+        <div class="count">${item.locationCount} recorded location${item.locationCount === 1 ? '' : 's'}</div>
+      </div>
+      <div class="location-card">
+        <div class="pin"><div class="star">★</div><div class="loc">${item.primary.location}</div></div>
+        <div class="location-info">
+          <h3>Primary Pick Location</h3>
+          <p>Go to section <strong>${item.primary.location}</strong>.</p>
+          <span class="coverage">${item.primary.coverage}</span>
+        </div>
+      </div>
+      ${buildAisleGuide(item.primary.location)}
+      ${overflowHtml}
+    </div>`;
+}
+
+search.addEventListener('input', e => {
+  clearBtn.style.display = e.target.value ? 'block' : 'none';
+  results.innerHTML = '';
+  emptyState.classList.toggle('hidden', !!e.target.value);
+  showSuggestions(e.target.value);
+  const exact = skuData.find(x => normalize(x.sku) === normalize(e.target.value));
+  if (exact) selectSku(exact.sku);
+});
+
+clearBtn.addEventListener('click', () => {
+  search.value = '';
+  clearBtn.style.display = 'none';
+  suggestions.style.display = 'none';
+  results.innerHTML = '';
+  emptyState.classList.remove('hidden');
+  search.focus();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) suggestions.style.display = 'none';
+});
+
+const aisleGroups = {};
+locationData.forEach(x => {
+  if (!aisleGroups[x.aisle]) aisleGroups[x.aisle] = [];
+  aisleGroups[x.aisle].push(x);
+});
+document.getElementById('aisles').innerHTML = Object.keys(aisleGroups).map(aisle => `
+  <div class="aisle-card">
+    <div class="aisle-title">Aisle ${aisle}</div>
+    ${aisleGroups[aisle].map(section => `
+      <div class="section">
+        <div class="section-head">
+          <div class="section-loc">${section.location}</div>
+          <div class="section-count">${section.skus.length} SKU${section.skus.length===1?'':'s'}</div>
+        </div>
+        ${section.skus.map(sku => `<span class="sku-chip" data-sku="${sku}">${sku}</span>`).join('')}
+      </div>`).join('')}
+  </div>`).join('');
+
+document.querySelectorAll('.sku-chip').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelector('[data-view="searchView"]').click();
+    selectSku(el.dataset.sku);
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+});
+
+document.querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('searchView').classList.add('hidden');
+    document.getElementById('aisleView').classList.add('hidden');
+    document.getElementById(btn.dataset.view).classList.remove('hidden');
+  });
+});
+</script>
+</body>
+</html>
