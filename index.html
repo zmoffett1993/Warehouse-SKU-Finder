@@ -60,9 +60,14 @@ main{max-width:980px;margin:auto;padding:16px 16px 36px}
 .overflow-item{display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--line)}
 .overflow-item:last-child{border-bottom:0}
 .small-loc{background:#eaf2f8;color:var(--brand);font-weight:900;border-radius:9px;padding:7px 10px}
-.aisle-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.aisle-grid{display:block}
+.aisle-tab-bar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
+.aisle-select-tab{appearance:none;border:2px solid var(--line);background:var(--panel);color:var(--text);border-radius:12px;padding:10px 14px;font:inherit;font-weight:900;cursor:pointer;min-width:76px}
+.aisle-select-tab:hover{border-color:var(--brand2)}
+.aisle-select-tab.active{background:var(--brand);border-color:var(--brand);color:#fff}
 .aisle-card{background:var(--panel);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
-.aisle-title{background:var(--brand);color:#fff;padding:13px 15px;font-weight:900}
+.aisle-title{background:var(--brand);color:#fff;padding:13px 15px;font-weight:900;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.aisle-title small{font-size:12px;font-weight:700;opacity:.9}
 .section{padding:12px 15px;border-bottom:1px solid var(--line)}
 .section:last-child{border-bottom:0}
 .section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
@@ -320,26 +325,53 @@ locationData.forEach(x => {
   if (!aisleGroups[x.aisle]) aisleGroups[x.aisle] = [];
   aisleGroups[x.aisle].push(x);
 });
-document.getElementById('aisles').innerHTML = Object.keys(aisleGroups).map(aisle => `
-  <div class="aisle-card">
-    <div class="aisle-title">Aisle ${aisle}</div>
-    ${aisleGroups[aisle].map(section => `
-      <div class="section">
-        <div class="section-head">
-          <div class="section-loc">${section.location}</div>
-          <div class="section-count">${section.skus.length} SKU${section.skus.length===1?'':'s'}</div>
-        </div>
-        ${section.skus.map(sku => `<span class="sku-chip" data-sku="${sku}">${sku}</span>`).join('')}
-      </div>`).join('')}
-  </div>`).join('');
+const aisleNumbers = Object.keys(aisleGroups).sort((a,b) => Number(a) - Number(b));
+const aislesContainer = document.getElementById('aisles');
 
-document.querySelectorAll('.sku-chip').forEach(el => {
-  el.addEventListener('click', () => {
-    document.querySelector('[data-view="searchView"]').click();
-    selectSku(el.dataset.sku);
-    window.scrollTo({top:0,behavior:'smooth'});
+function renderAisleBrowser(activeAisle) {
+  const sections = aisleGroups[activeAisle] || [];
+  const skuCount = sections.reduce((total, section) => total + section.skus.length, 0);
+
+  aislesContainer.innerHTML = `
+    <div class="aisle-tab-bar" role="tablist" aria-label="Choose an aisle">
+      ${aisleNumbers.map(aisle => `
+        <button type="button"
+          class="aisle-select-tab ${aisle === activeAisle ? 'active' : ''}"
+          data-aisle="${aisle}"
+          role="tab"
+          aria-selected="${aisle === activeAisle}">
+          Aisle ${aisle}
+        </button>`).join('')}
+    </div>
+    <div class="aisle-card" role="tabpanel">
+      <div class="aisle-title">
+        <span>Aisle ${activeAisle}</span>
+        <small>${sections.length} sections · ${skuCount} SKU entries</small>
+      </div>
+      ${sections.map(section => `
+        <div class="section">
+          <div class="section-head">
+            <div class="section-loc">${section.location}</div>
+            <div class="section-count">${section.skus.length} SKU${section.skus.length===1?'':'s'}</div>
+          </div>
+          ${section.skus.map(sku => `<span class="sku-chip" data-sku="${sku}">${sku}</span>`).join('')}
+        </div>`).join('')}
+    </div>`;
+
+  aislesContainer.querySelectorAll('.aisle-select-tab').forEach(btn => {
+    btn.addEventListener('click', () => renderAisleBrowser(btn.dataset.aisle));
   });
-});
+
+  aislesContainer.querySelectorAll('.sku-chip').forEach(el => {
+    el.addEventListener('click', () => {
+      document.querySelector('[data-view="searchView"]').click();
+      selectSku(el.dataset.sku);
+      window.scrollTo({top:0,behavior:'smooth'});
+    });
+  });
+}
+
+renderAisleBrowser(aisleNumbers[0]);
 
 document.querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', () => {
